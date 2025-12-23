@@ -78,8 +78,9 @@ function LoginForm() {
                     )}
                 </span>
             </Input>
-            <div>
-                <Link to="/forgot-password-request" className="w-full inline-block text-sm text-white font-medium underline text-right ">Forgot Password?</Link>
+            <div className="flex w-full items-center justify-end">
+                {/* make this text apear in right side */}
+                <Link to="/forgot-password-request" className="flex w-fit  text-sm text-white font-medium underline text-right ">Forgot Password?</Link>
             </div>
             <Button type="submit" variant="primary" disabled={loginMutation.isPending}>
                 {

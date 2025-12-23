@@ -29,10 +29,18 @@ function Navbar() {
     const { data: categories } = useQuery({
         queryKey: ["categories"],
         queryFn: getAllCategories,
-        // cache for 1 hour and if user refresh page then it will fetch data from server
-        staleTime: 60 * 60 * 1000,
-        // if user refresh page then it will fetch data from server
-        refetchOnWindowFocus: true,
+        // Always refetch on page load / mount
+        staleTime: 60 * 60 * 1000, // 1 hour
+
+        // Keep data in memory to avoid flicker
+        gcTime: 60 * 60 * 1000,
+
+        // Disable background / automatic refetches
+        refetchOnWindowFocus: false,
+        refetchOnReconnect: false,
+
+        // Prevent retry storms
+        retry: false,
     })
 
 
