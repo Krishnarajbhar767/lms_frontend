@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai"
@@ -6,7 +7,9 @@ import Input from "./input";
 import { registerApi } from "../../service/api/auth.api";
 import { useMutation } from "@tanstack/react-query";
 import toast from "react-hot-toast";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { GrFormNextLink } from "react-icons/gr";
+
 
 
 export type RegisterFormValues = {
@@ -104,7 +107,12 @@ function RegisterForm() {
                         <AiOutlineEye fontSize={24} fill="#AFB2BF" />
                     )}</span></Input>
                 </div>
-                <Button type="submit" variant="primary" disabled={registerMutation.isPending}>
+                <div className="flex w-full items-center justify-end">
+                    {/* already have an account */}
+                    <Link to="/login" className="flex w-fit  text-sm text-white font-medium underline text-right ">Already have an account?</Link>
+
+                </div>
+                <Button type="submit" variant="primary" disabled={registerMutation.isPending} className="flex items-center gap-x-2 justify-center">
                     {
                         registerMutation.isPending ? (
                             "Registering..."
@@ -112,6 +120,7 @@ function RegisterForm() {
                             "Register"
                         )
                     }
+                    <GrFormNextLink size={24} />
                 </Button>
             </form>
         </div>

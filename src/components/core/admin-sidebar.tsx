@@ -8,6 +8,10 @@ import {
 import { VscSignOut } from "react-icons/vsc"
 
 import { NavLink } from "react-router-dom"
+import ConfirmModal from "./confirm-modal"
+import { useState } from "react"
+import { useUserStore } from "../../store/user.store"
+import toast from "react-hot-toast"
 
 export const ADMIN_LINKS = [
     {
@@ -41,6 +45,13 @@ type SidebarLinkProps = {
 
 
 export default function AdminSidebar() {
+    const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false)
+    const logout = useUserStore((state) => state.logout)
+    const logoutHandler = () => {
+        logout()
+        setIsConfirmModalOpen(false)
+        toast.success('Logout successfully')
+    }
     return (
         <>
             {/* Desktop Sidebar */}
@@ -55,9 +66,9 @@ export default function AdminSidebar() {
 
                 <button
                     className="px-8 py-2 text-sm font-medium text-richblack-300 hover:text-red-400 transition-colors"
-                    onClick={() => alert("Logout clicked")}
+                    onClick={() => setIsConfirmModalOpen(true)}
                 >
-                    <div className="flex items-center gap-x-2">
+                    <div className="flex items-center gap-x-2" >
                         <VscSignOut className="text-lg" />
                         <span>Logout</span>
                     </div>
@@ -66,6 +77,19 @@ export default function AdminSidebar() {
 
             {/* Mobile Bottom Bar */}
             <MobileBottomNav />
+            {
+                isConfirmModalOpen &&
+                <ConfirmModal
+                    isOpen={isConfirmModalOpen}
+                    onCancel={() => setIsConfirmModalOpen(false)}
+                    title="Are you sure?"
+                    description="You will be logged out."
+                    cancelText="Cancel"
+                    confirmText="Logout"
+                    variant='danger'
+                    onConfirm={logoutHandler}
+                />
+            }
         </>
     )
 }
@@ -100,6 +124,13 @@ export function SidebarLink({ name, path, icon: Icon }: SidebarLinkProps) {
 }
 
 export function MobileBottomNav() {
+    const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false)
+    const logout = useUserStore((state) => state.logout)
+    const logoutHandler = () => {
+        logout()
+        setIsConfirmModalOpen(false)
+        toast.success('Logout successfully')
+    }
     return (
         <nav className="fixed bottom-0 left-0 right-0 z-50 flex md:hidden bg-richblack-800 border-t border-richblack-700">
             {ADMIN_LINKS.map(({ name, path, icon: Icon }) => (
@@ -121,12 +152,25 @@ export function MobileBottomNav() {
 
             {/* Logout */}
             <button
-                onClick={() => alert("Logout clicked")}
+                onClick={() => setIsConfirmModalOpen(true)}
                 className="flex flex-1 flex-col items-center justify-center py-2 text-xs text-red-400 hover:text-red-300"
             >
                 <VscSignOut className="text-lg" />
                 <span className="mt-1">Logout</span>
             </button>
+            {
+                isConfirmModalOpen &&
+                <ConfirmModal
+                    isOpen={isConfirmModalOpen}
+                    onCancel={() => setIsConfirmModalOpen(false)}
+                    title="Are you sure?"
+                    description="You will be logged out."
+                    cancelText="Cancel"
+                    confirmText="Logout"
+                    variant='danger'
+                    onConfirm={logoutHandler}
+                />
+            }
         </nav>
     )
 }

@@ -9,6 +9,11 @@ import { getProfileApi, loginApi } from "../../service/api/auth.api";
 import toast from "react-hot-toast";
 import { Link } from "react-router-dom";
 import { useUserStore } from "../../store/user.store";
+import { queryClient } from "../../main";
+
+import { IoMdLogIn } from "react-icons/io";
+
+
 
 export type LoginFormValues = {
     email: string;
@@ -19,14 +24,15 @@ export type LoginFormValues = {
 function LoginForm() {
     const [showPassword, setShowPassword] = useState(false);
     const { register, handleSubmit, formState: { errors } } = useForm<LoginFormValues>();
-
     const loginMutation = useMutation({
         mutationFn: loginApi,
         onSuccess: async (data) => {
             toast.success(data.data?.message);
+            queryClient.setQueryData(["profile"], data)
             // set token in localStorage  
             localStorage.setItem("token", data.data?.data);
             const res = await getProfileApi()
+            queryClient.setQueryData(["profile"], res)
             useUserStore.setState({ user: res.data?.data });
         },
         onError: (error: any) => {
@@ -78,11 +84,12 @@ function LoginForm() {
                     )}
                 </span>
             </Input>
-            <div className="flex w-full items-center justify-end">
+            <div className="flex w-full items-center justify-between">
                 {/* make this text apear in right side */}
+                <Link to="/register" className="flex w-fit  text-sm text-white font-medium underline text-right ">Don't have an account?</Link>
                 <Link to="/forgot-password-request" className="flex w-fit  text-sm text-white font-medium underline text-right ">Forgot Password?</Link>
             </div>
-            <Button type="submit" variant="primary" disabled={loginMutation.isPending}>
+            <Button type="submit" variant="primary" disabled={loginMutation.isPending} className="flex items-center gap-x-2 justify-center">
                 {
                     loginMutation.isPending ? (
                         "Signing In..."
@@ -90,6 +97,8 @@ function LoginForm() {
                         "Sign In"
                     )
                 }
+                {/* Login Icons */}
+                <IoMdLogIn size={24} />
             </Button>
 
         </form>

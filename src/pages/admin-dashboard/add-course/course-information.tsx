@@ -1,3 +1,4 @@
+"use no memo";
 import { useForm } from "react-hook-form";
 import Input from "../../../components/core/input";
 import Button from "../../../components/core/button";
@@ -34,7 +35,7 @@ export const CourseInformationForm = () => {
         queryFn: getAllCategories,
         staleTime: 60 * 60 * 1000,
     })
-    const { register, handleSubmit, setValue, reset, formState: { errors, isSubmitting } } = useForm<CourseInformationFormValues>({
+    const { register, handleSubmit, setValue, reset, formState: { errors, isSubmitting, submitCount } } = useForm<CourseInformationFormValues>({
         defaultValues: {
             title: course?.title || "",
             description: course?.description || "",
@@ -151,7 +152,8 @@ export const CourseInformationForm = () => {
         return <CourseInformationFormSkeleton />
     }
     return (
-        <form onSubmit={handleSubmit(onSubmit)} className="bg-[#161d29] p-6 rounded-lg space-y-4">
+
+        <form key={submitCount} onSubmit={handleSubmit(onSubmit)} className="bg-[#161d29] p-6 rounded-lg space-y-4">
             <Input
                 label="Title"
                 type="text" {...register("title")}

@@ -30,6 +30,7 @@ function App() {
           <Route path="forgot-password-request" element={<ForgotPasswordRequest />} />
           <Route path="reset-password" element={<ForgotPasswordReset />} />
           <Route path="verify-email" element={<VerifyEmail />} />
+          <Route path="*" element={<NotFound />} />
         </Route>
 
         {/* Admin Routes */}
@@ -37,7 +38,7 @@ function App() {
           <Route path="add-course" element={<AdminCoursesManagement />} />
           <Route path="courses" element={<AdminCourses />} />
         </Route>
-        <Route path="*" element={<NotFound />} />
+
       </Routes>
     </div>
   );

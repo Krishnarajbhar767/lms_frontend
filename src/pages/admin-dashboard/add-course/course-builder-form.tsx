@@ -36,27 +36,8 @@ import { useEffect } from "react";
 import { AddLessonForm } from "./add-lesson-form";
 import { queryClient } from "../../../main";
 import ConfirmModal from "../../../components/core/confirm-modal";
+import BunnyPlayer from "../../../components/core/bunny-player";
 
-const BunnyPlayer = ({ videoId }: { videoId: string }) => {
-    const [embedUrl, setEmbedUrl] = useState<string>("")
-    useEffect(() => {
-        getEmbedUrl(videoId).then(data => setEmbedUrl(data.embedUrl));
-    }, [videoId]);
-
-    if (!embedUrl) return <div className="animate-pulse bg-richblack-800 h-40 w-full rounded-md">Loading Player...</div>;
-
-    return (
-        <div className="relative pt-[56.25%] border-white min-h-[200px] w-full">
-            <iframe
-                src={embedUrl}
-                loading="lazy"
-                className="absolute top-0 left-0 w-full h-full border-0 rounded-md"
-                allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;"
-                allowFullScreen={true}
-            ></iframe>
-        </div>
-    );
-};
 
 
 export const CourseBuilderForm = () => {
@@ -68,7 +49,7 @@ export const CourseBuilderForm = () => {
         register,
         handleSubmit,
         setValue,
-        formState: { errors },
+        formState: { errors, submitCount },
     } = useForm({
         defaultValues: {
             sectionName: "",
@@ -200,7 +181,7 @@ export const CourseBuilderForm = () => {
         <div className="space-y-8 rounded-md border border-richblack-700 bg-richblack-800 p-6">
             <h2 className="text-2xl font-semibold text-richblack-5">Course Builder</h2>
 
-            <form onSubmit={handleSubmit(onCreateSection)} className="space-y-4">
+            <form onSubmit={handleSubmit(onCreateSection)} className="space-y-4" key={submitCount}>
                 <Input
                     label="Section Name"
                     name="sectionName"

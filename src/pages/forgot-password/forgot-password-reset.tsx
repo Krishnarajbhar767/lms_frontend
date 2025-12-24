@@ -19,7 +19,7 @@ function UpdatePassword() {
     const [searchParams] = useSearchParams();
     const navigate = useNavigate()
     const token = searchParams.get("token") as string;
-    const { register, handleSubmit, watch, formState: { errors, isSubmitting } } = useForm<ForgotPasswordFormValues>()
+    const { register, handleSubmit, watch, formState: { errors, isSubmitting, submitCount } } = useForm<ForgotPasswordFormValues>()
     const resetPasswordHandler = handleSubmit(async (data) => {
         try {
             const response = await resetPasswordApi({ ...data, token })
@@ -41,7 +41,7 @@ function UpdatePassword() {
                 <p className="my-4 text-[1.125rem] leading-[1.625rem] text-richblack-100">
                     Almost done. Enter your new password and youre all set.
                 </p>
-                <form onSubmit={resetPasswordHandler} className="space-y-4">
+                <form onSubmit={resetPasswordHandler} className="space-y-4" key={submitCount}>
                     {/* New Password */}
                     <Input type={showPassword ? "text" : "password"} name="password" label="New Password" placeholder="Enter your new password" register={register} validation={{ required: 'New Password is required', minLength: { value: 6, message: 'Password must be at least 6 characters' } }} error={errors} >
                         <span onClick={() => setShowPassword(!showPassword)}>

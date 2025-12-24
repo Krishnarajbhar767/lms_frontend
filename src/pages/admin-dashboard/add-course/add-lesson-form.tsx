@@ -23,7 +23,7 @@ interface AddLessonFormValues {
 }
 
 export const AddLessonForm = ({ sectionId, onCancel, onSuccess }: AddLessonFormProps) => {
-    const { register, handleSubmit, setValue, formState: { errors } } = useForm<AddLessonFormValues>();
+    const { register, handleSubmit, setValue, formState: { errors, submitCount } } = useForm<AddLessonFormValues>();
     const setCourse = useCourseStore((state) => state?.setCourse);
     const onSubmit = async (data: AddLessonFormValues) => {
         let resourceUrl = '';
@@ -89,7 +89,7 @@ export const AddLessonForm = ({ sectionId, onCancel, onSuccess }: AddLessonFormP
     };
 
     return (
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 rounded-md border border-richblack-600 bg-richblack-800 p-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 rounded-md border border-richblack-600 bg-richblack-800 p-4" key={submitCount}>
             <h3 className="text-lg font-semibold text-richblack-5">Add New Lesson</h3>
 
             <Input

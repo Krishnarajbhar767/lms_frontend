@@ -15,6 +15,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const token = localStorage.getItem("token");
     const user = useUserStore((s) => s.user);
     const setUser = useUserStore((s) => s.setUser);
+    const setIsUserloading = useUserStore((s) => s.setIsUserloading);
     const {
         data,
         isLoading,
@@ -32,6 +33,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setUser(data.data.data);
         }
     }, [data, setUser]);
+    useEffect(() => {
+        if (isLoading) {
+            setIsUserloading(true);
+        }
+        else {
+            setIsUserloading(false);
+        }
+    }, [isLoading]);
     return (
         <AuthContext.Provider
             value={{

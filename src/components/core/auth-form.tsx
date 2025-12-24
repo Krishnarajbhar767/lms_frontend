@@ -4,6 +4,8 @@ import RegisterForm from "./register-form";
 import LoginForm from "./login-form";
 import { useUserStore } from "../../store/user.store";
 import { useNavigate } from "react-router-dom";
+import { Loader } from "./loader";
+import { useEffect } from "react";
 type Props = {
     title: string;
     description1: string;
@@ -14,13 +16,17 @@ type Props = {
 function AuthForm({ title, description1, description2, image, formType }: Props) {
     const user = useUserStore((state) => state.user)
     const navigate = useNavigate()
-    if (user?.role === 'ADMIN') {
-        navigate("/admin/dashboard")
-
-    }
-    if (user?.role === 'STUDENT') {
-        navigate("/dashboard/my-profile")
-
+    const isUserLoading = useUserStore((state) => state.isUserloading)
+    useEffect(() => {
+        if (user?.role === 'ADMIN') {
+            navigate("/admin/dashboard")
+        }
+        if (user?.role === 'STUDENT') {
+            navigate("/dashboard/my-profile")
+        }
+    }, [user])
+    if (isUserLoading) {
+        return <Loader />
     }
     return (
         <div className="grid min-h-[calc(100vh-3.5rem)] place-items-center">

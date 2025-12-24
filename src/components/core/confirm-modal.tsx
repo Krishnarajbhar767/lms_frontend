@@ -31,7 +31,7 @@ export default function ConfirmModal({
     onConfirm,
     onCancel,
 }: ConfirmModalProps) {
-    // 🔒 lock background scroll
+
     useEffect(() => {
         if (isOpen) document.body.style.overflow = "hidden";
         else document.body.style.overflow = "";
@@ -52,15 +52,15 @@ export default function ConfirmModal({
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center px-6 py-4">
             {/* Overlay */}
             <div
-                className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+                className="absolute inset-0 bg-black/50 backdrop-blur-sm "
                 onClick={onCancel}
             />
 
             {/* Modal */}
-            <div className="relative z-10 w-full max-w-md rounded-xl bg-richblack-800 border border-richblack-700 shadow-2xl animate-in fade-in zoom-in duration-200">
+            <div className=" relative z-10 w-full max-w-md rounded-xl bg-richblack-800 border border-richblack-700 shadow-2xl animate-in fade-in zoom-in duration-200">
                 {/* Header */}
                 <div className="flex items-center justify-between px-6 py-4 border-b border-richblack-700">
                     <h2 className="text-lg font-semibold text-richblack-5">
