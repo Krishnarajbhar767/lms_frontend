@@ -27,5 +27,8 @@ export const CourseEndpoints = {
     updateCourseStatus: (id: number) => `${BASE}/courses/update-status/${id}`,
     archiveCourse: (id: number) => `${BASE}/courses/archive/${id}`,
     createLesson: `${BASE}/lessons/create`,
+    updateLesson: (id: number) => `${BASE}/lessons/update/${id}`,
     uploadResource: `${BASE}/lessons/upload-resource`,
+    deleteResource: (id: number) => `${BASE}/lessons/resource/${id}`,
+    deleteResourceFile: `${BASE}/lessons/resource/file`,
 }

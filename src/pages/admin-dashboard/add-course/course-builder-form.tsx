@@ -30,10 +30,9 @@ import type { Course } from "../../../service/api/course.api";
 import Input from "../../../components/core/input";
 import Button from "../../../components/core/button";
 import { useStepsStore } from "../../../store/steps.store";
-import { getEmbedUrl } from "../../../service/api/bunny.apis";
-import { useEffect } from "react";
 
 import { AddLessonForm } from "./add-lesson-form";
+import { EditLessonForm } from "./edit-lesson-form";
 import { queryClient } from "../../../main";
 import ConfirmModal from "../../../components/core/confirm-modal";
 import BunnyPlayer from "../../../components/core/bunny-player";
@@ -393,6 +392,7 @@ const NestedLesson: React.FC<{
 }> = ({ lesson, course, updateCourse }) => {
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [deleting, setDeleting] = useState(false);
+    const [isEditingLesson, setIsEditingLesson] = useState(false);
 
     const handleDeleteLesson = async () => {
         setDeleting(true);
@@ -411,6 +411,7 @@ const NestedLesson: React.FC<{
             });
 
             updateCourse({ sections: newSections });
+            queryClient.invalidateQueries({ queryKey: ["course"] });
             toast.success("Lesson deleted successfully");
             setShowDeleteConfirm(false);
         } catch (error) {
@@ -449,6 +450,9 @@ const NestedLesson: React.FC<{
                     }}>
                         <span className="text-richblack-50">{lesson.title}</span>
                         <div className="ml-auto flex items-center gap-x-3">
+                            <button onClick={(e) => { e.stopPropagation(); setIsEditingLesson(true); }} className="text-richblack-300 hover:text-yellow-50">
+                                <MdEdit size={20} />
+                            </button>
                             <button onClick={(e) => { e.stopPropagation(); setShowDeleteConfirm(true); }} className="text-richblack-300 hover:text-pink-200">
                                 <MdDelete size={20} />
                             </button>
@@ -458,18 +462,28 @@ const NestedLesson: React.FC<{
                 </div>
             </div>
 
-            <div id={`lesson-view-${lesson.id}`} className="hidden mt-2 pl-8">
-                {lesson.bunnyVideoId && (
-                    <div className="mb-2">
-                        <BunnyPlayer videoId={lesson.bunnyVideoId} />
-                    </div>
-                )}
-                {lesson.resource && (
-                    <a href={lesson.resource} target="_blank" rel="noopener noreferrer" className="text-yellow-50 underline text-sm">
-                        View Resource
-                    </a>
-                )}
-            </div>
+            {isEditingLesson ? (
+                <div className="mt-4">
+                    <EditLessonForm
+                        lesson={lesson}
+                        onCancel={() => setIsEditingLesson(false)}
+                        onSuccess={() => setIsEditingLesson(false)}
+                    />
+                </div>
+            ) : (
+                <div id={`lesson-view-${lesson.id}`} className="hidden mt-2 pl-8">
+                    {lesson.bunnyVideoId && (
+                        <div className="mb-2">
+                            <BunnyPlayer videoId={lesson.bunnyVideoId} />
+                        </div>
+                    )}
+                    {lesson.resource && lesson.resource.length > 0 && (
+                        <a href={lesson.resource[0].url} target="_blank" rel="noopener noreferrer" className="text-yellow-50 underline text-sm">
+                            View Resource
+                        </a>
+                    )}
+                </div>
+            )}
 
             <ConfirmModal
                 isOpen={showDeleteConfirm}

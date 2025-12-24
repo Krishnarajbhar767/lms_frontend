@@ -13,11 +13,13 @@ import { AdminCoursesManagement } from "./pages/admin-dashboard/add-course/add-c
 import { PublicLayout } from "./layout/public-layout";
 import NotFound from "./components/core/not-found";
 import AdminCourses from "./pages/admin-dashboard/courses/admin-courses";
+import GlobalLoader from "./components/core/global-loader";
 
 function App() {
 
   return (
     <div className="w-screen min-h-screen bg-richblue-900 flex flex-col font-inter">
+      <GlobalLoader />
       <Routes>
 
         {/* Public Routes */}

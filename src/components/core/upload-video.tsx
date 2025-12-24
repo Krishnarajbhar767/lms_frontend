@@ -12,6 +12,8 @@ type UploadVideoProps = {
     errors: FieldErrors;
     initialVideo?: string | null;
     className?: string;
+    optional?: boolean;
+    onDurationChange?: (duration: number) => void;
 }
 
 export default function UploadVideo({
@@ -21,7 +23,9 @@ export default function UploadVideo({
     setValue,
     errors,
     initialVideo = null,
-    className
+    className,
+    optional = false,
+    onDurationChange,
 }: UploadVideoProps) {
 
     const [previewSource, setPreviewSource] = useState<string | null>(initialVideo || null)
@@ -44,11 +48,23 @@ export default function UploadVideo({
     const previewFile = (file: File) => {
         const url = URL.createObjectURL(file);
         setPreviewSource(url);
+
+        // Extract Duration
+        if (onDurationChange) {
+            const video = document.createElement("video");
+            video.preload = "metadata";
+            video.onloadedmetadata = () => {
+                // Convert to minutes and round up
+                const durationInMinutes = Math.ceil(video.duration / 60);
+                onDurationChange(durationInMinutes);
+            };
+            video.src = url;
+        }
     }
 
     useEffect(() => {
-        register(name, { required: !previewSource })
-    }, [register, name, previewSource])
+        register(name, { required: optional ? false : !previewSource })
+    }, [register, name, previewSource, optional])
 
 
     useEffect(() => {

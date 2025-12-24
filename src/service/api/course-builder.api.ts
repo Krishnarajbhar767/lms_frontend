@@ -1,5 +1,7 @@
+import { CourseEndpoints } from "../endpoints";
 import axiosInstance from "./api"
 import type { ApiResponse } from "./api";
+import type { Course } from "./course.api";
 
 
 // Section Interfaces
@@ -11,13 +13,21 @@ export interface Section {
     order: number;
 }
 
+export interface Resource {
+    id: number;
+    name: string;
+    url: string;
+    lessonId: number;
+}
+
+// Lesson Interfaces
 export interface Lesson {
     id: number;
     title: string;
     bunnyVideoId?: string;
     duration?: number;
     sectionId: number;
-    resource?: string;
+    resource?: Resource[];
     order: number;
 }
 
@@ -70,6 +80,16 @@ export const reorderLessonsApi = async (sectionId: number, lessonOrder: { id: nu
 
 export const deleteLesson = async (lessonId: number) => {
     const res = await axiosInstance.delete<ApiResponse<null>>(`/lessons/${lessonId}`)
+    return res?.data?.data
+}
+
+export const deleteResourceFileApi = async (resourceUrl: string) => {
+    const res = await axiosInstance.delete<ApiResponse<null>>(CourseEndpoints.deleteResourceFile, { data: { resourceUrl } })
+    return res?.data?.data
+}
+
+export const deleteResourceApi = async (resourceId: number) => {
+    const res = await axiosInstance.delete<ApiResponse<Course>>(CourseEndpoints.deleteResource(resourceId))
     return res?.data?.data
 }
 

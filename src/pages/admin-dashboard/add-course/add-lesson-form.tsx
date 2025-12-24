@@ -8,6 +8,9 @@ import { createLessonApi, uploadResourceApi } from "../../../service/api/course.
 import UploadResource from "../../../components/core/upload-resource";
 import { queryClient } from "../../../main";
 import { useCourseStore } from "../../../store/course.store";
+import { deleteResourceFileApi } from "../../../service/api/course-builder.api";
+import { IoCreateSharp } from "react-icons/io5";
+import { MdOutlineCancel } from "react-icons/md";
 
 type AddLessonFormProps = {
     sectionId: number;
@@ -23,7 +26,9 @@ interface AddLessonFormValues {
 }
 
 export const AddLessonForm = ({ sectionId, onCancel, onSuccess }: AddLessonFormProps) => {
-    const { register, handleSubmit, setValue, formState: { errors, submitCount } } = useForm<AddLessonFormValues>();
+    const { register, handleSubmit, setValue, watch, formState: { errors, submitCount, isSubmitting } } = useForm<AddLessonFormValues>();
+    const videoFile = watch("videoFile");
+    const duration = watch("duration");
     const setCourse = useCourseStore((state) => state?.setCourse);
     const onSubmit = async (data: AddLessonFormValues) => {
         let resourceUrl = '';
@@ -46,17 +51,9 @@ export const AddLessonForm = ({ sectionId, onCancel, onSuccess }: AddLessonFormP
                     data.resourceFile.type.startsWith("application/vnd.openxmlformats-officedocument.wordprocessingml.document");
 
                 if (isValidType) {
-                    try {
-                        const uploadRes = await uploadResourceApi(data.resourceFile);
-                        // Ensure we extract the string URL from the response object
-                        if (uploadRes) {
-                            resourceUrl = uploadRes?.resourceUrl;
-                        }
-                    } catch (resError) {
-                        await deleteBunnyVideoApi(videoId);
-                        // If resource upload fails, we should probably rollback the video upload to avoid partial state
-                        // The original code did this, so we preserve that behavior
-                        throw resError;
+                    const uploadRes = await uploadResourceApi(data.resourceFile);
+                    if (uploadRes) {
+                        resourceUrl = uploadRes?.resourceUrl;
                     }
                 }
             }
@@ -76,13 +73,19 @@ export const AddLessonForm = ({ sectionId, onCancel, onSuccess }: AddLessonFormP
 
         } catch (error) {
             console.error("Lesson creation failed:", error);
-            // Cleanup: If video was created/uploaded but the process failed later (e.g., resource upload or lesson creation)
+            // Cleanup
             if (videoId) {
                 try {
                     await deleteBunnyVideoApi(videoId);
-                    console.log("Rolled back bunny video due to error");
                 } catch (cleanupError) {
                     console.error("Failed to cleanup bunny video:", cleanupError);
+                }
+            }
+            if (resourceUrl) {
+                try {
+                    await deleteResourceFileApi(resourceUrl);
+                } catch (cleanupError) {
+                    console.error("Failed to cleanup resource:", cleanupError);
                 }
             }
         }
@@ -109,23 +112,35 @@ export const AddLessonForm = ({ sectionId, onCancel, onSuccess }: AddLessonFormP
                         register={register}
                         setValue={setValue}
                         errors={errors}
+                        onDurationChange={(duration) => setValue("duration", duration)}
                     />
                 </div>
             </div>
 
-            <div className="w-full">
-                <Input
-                    label="Duration (min)"
-                    name="duration"
-                    type="number"
-                    register={register}
-                    validation={{ required: "Duration is required", valueAsNumber: true, min: 1 }}
-                    // placeholder="0"
-                    error={errors}
-                />
-            </div>
+            {!videoFile ? (
+                <div className="w-full">
+                    <Input
+                        label="Duration (min) (Auto-calculated)"
+                        name="duration"
+                        type="number"
+                        register={register}
+                        validation={{ required: "Duration is required", valueAsNumber: true, min: 1 }}
+                        error={errors}
+                    />
+                </div>
+            ) : (
+                <div className="flex flex-col space-y-2">
+                    <label className="text-sm font-medium text-richblack-5">Duration</label>
+                    <div className="rounded-md bg-richblack-700 p-3 border border-richblack-600 text-richblack-5 text-sm">
+                        {duration ? `${duration} mins (Auto-calculated)` : "Calculating duration..."}
+                    </div>
+                    {/* Keep hidden input for form submission if needed, or rely on setValue */}
+                    <input type="hidden" {...register("duration", { required: true, valueAsNumber: true })} />
+                </div>
+            )}
 
             <div>
+                <h1 className="text-richblack-5 text-sm">Resource (Optional)</h1>
                 <UploadResource
                     name="resourceFile"
                     label="Resource"
@@ -139,15 +154,19 @@ export const AddLessonForm = ({ sectionId, onCancel, onSuccess }: AddLessonFormP
             <div className="flex justify-end gap-x-2 pt-2">
                 <Button
                     type="button"
-                    variant="ghost"
+                    variant="secondary"
                     onClick={onCancel}
+                    className="flex items-center gap-x-2 justify-center"
                 >
                     Cancel
+                    <MdOutlineCancel />
                 </Button>
                 <Button
                     type="submit"
+                    disabled={isSubmitting}
+                    className="flex items-center gap-x-2 justify-center"
                 >
-                    Save Lesson
+                    {isSubmitting ? "Creating..." : "Create Lesson"} <IoCreateSharp />
                 </Button>
             </div>
         </form>

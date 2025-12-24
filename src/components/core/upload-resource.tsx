@@ -61,7 +61,7 @@ export default function UploadResource({
     return (
         <div className={`flex flex-col space-y-2 w-full ${className}`}>
             <label className="text-sm font-medium text-richblack-5" htmlFor={name}>
-                {label} {!previewSource && <sup className="text-pink-200">*</sup>}
+
             </label>
 
             <div

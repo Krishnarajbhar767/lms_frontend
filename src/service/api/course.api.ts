@@ -55,13 +55,20 @@ export interface Section {
     order: number;
 }
 
+export interface Resource {
+    id: number;
+    name: string;
+    url: string;
+    lessonId: number;
+}
+
 export interface Lesson {
     id: number;
     title: string;
     bunnyVideoId?: string;
     duration?: number;
     sectionId: number;
-    resource?: string
+    resource?: Resource[]
     order: number;
 }
 export const createCourse = async (courseData: Course) => {
@@ -100,7 +107,7 @@ export const archiveCourseApi = async (id: number) => {
 }
 
 // make partial optioanl  only  order,sectionId,duration 
-export const createLessonApi = async (lessonData: Omit<Lesson, "id" | "order">) => {
+export const createLessonApi = async (lessonData: Omit<Lesson, "id" | "order" | "resource"> & { resource?: string }) => {
     const res = await axiosInstance.post<ApiResponse<Course>>(CourseEndpoints.createLesson, {
         title: lessonData.title,
         sectionId: lessonData.sectionId,
@@ -121,6 +128,11 @@ export const uploadResourceApi = async (file: File) => {
         }
     });
 
+    return res?.data?.data
+}
+
+export const updateLessonApi = async (lessonId: number, lessonData: Partial<Omit<Lesson, "resource">> & { resource?: string }) => {
+    const res = await axiosInstance.put<ApiResponse<Course>>(CourseEndpoints.updateLesson(lessonId), lessonData);
     return res?.data?.data
 }
 
