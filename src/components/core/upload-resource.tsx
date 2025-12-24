@@ -102,7 +102,7 @@ export default function UploadResource({
                                 </span>
                             </p>
                             <p className="mt-2 text-xs text-richblack-400">
-                                Max file size: 6MB • PDF
+                                PDF,DOCS,DOCX
                             </p>
                         </div>
                     </div>

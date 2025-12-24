@@ -12,6 +12,9 @@ import { deleteResourceApi, deleteResourceFileApi, type Lesson } from "../../../
 import { queryClient } from "../../../main";
 import ConfirmModal from "../../../components/core/confirm-modal";
 import BunnyPlayer from "../../../components/core/bunny-player";
+import { useMutation } from "@tanstack/react-query";
+import { MdOutlineCancel } from "react-icons/md";
+import { FaRegSave } from "react-icons/fa";
 
 interface EditLessonFormProps {
     lesson: Lesson;
@@ -27,7 +30,7 @@ interface EditLessonFormValues {
 }
 
 export const EditLessonForm: React.FC<EditLessonFormProps> = ({ lesson, onCancel, onSuccess }) => {
-    const { register, handleSubmit, setValue, watch, formState: { errors, isSubmitting, submitCount } } = useForm<EditLessonFormValues>({
+    const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm<EditLessonFormValues>({
         defaultValues: {
             title: lesson.title,
             duration: lesson.duration || 0,
@@ -39,23 +42,14 @@ export const EditLessonForm: React.FC<EditLessonFormProps> = ({ lesson, onCancel
     const hasVideo = lesson.bunnyVideoId || (videoFile && videoFile.size > 0);
     const setCourse = useCourseStore((state) => state?.setCourse);
     const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
-    const [isDeletingResource, setIsDeletingResource] = useState(false);
     const [showVideoPreview, setShowVideoPreview] = useState(false);
 
-    const onSubmit = async (data: EditLessonFormValues) => {
-        let newVideoId = "";
-        let newResourceUrl = "";
-        const isVideoChanged = data.videoFile && data.videoFile.size > 0;
-        const isResourceChanged = data.resourceFile && data.resourceFile.size > 0;
-
-        // Optimized: If nothing changed, just close
-        if (!isVideoChanged && !isResourceChanged && data.title === lesson.title && data.duration === lesson.duration) {
-            onCancel();
-            return;
-        }
-
-        try {
-            // --- Step 1: Upload NEW assets first ---
+    const { mutateAsync: updateLessonMutation, isPending: isUpdating } = useMutation({
+        mutationFn: async (data: EditLessonFormValues) => {
+            let newVideoId = "";
+            let newResourceUrl = "";
+            const isVideoChanged = data.videoFile && data.videoFile.size > 0;
+            const isResourceChanged = data.resourceFile && data.resourceFile.size > 0;
 
             // Handle New Video Upload
             if (isVideoChanged) {
@@ -72,72 +66,87 @@ export const EditLessonForm: React.FC<EditLessonFormProps> = ({ lesson, onCancel
                 }
             }
 
-            // --- Step 2: Update Database ---
-            const updateData: Parameters<typeof updateLessonApi>[1] = {
-                title: data.title,
-                duration: data.duration,
-            };
-            if (newVideoId) updateData.bunnyVideoId = newVideoId;
-            if (newResourceUrl) updateData.resource = newResourceUrl;
+            try {
+                const updateData: Parameters<typeof updateLessonApi>[1] = {
+                    title: data.title,
+                    duration: data.duration,
+                };
+                if (newVideoId) updateData.bunnyVideoId = newVideoId;
+                if (newResourceUrl) updateData.resource = newResourceUrl;
 
-            const updatedCourse = await updateLessonApi(lesson.id, updateData);
-
-            // Update Store
+                const updatedCourse = await updateLessonApi(lesson.id, updateData);
+                return { updatedCourse, newVideoId, newResourceUrl };
+            } catch (error) {
+                // Rollback on failure
+                if (newVideoId) {
+                    try {
+                        await deleteBunnyVideoApi(newVideoId);
+                    } catch (e) {
+                        console.error("Failed to rollback video:", e);
+                    }
+                }
+                if (newResourceUrl) {
+                    try {
+                        await deleteResourceFileApi(newResourceUrl);
+                    } catch (e) {
+                        console.error("Failed to rollback resource:", e);
+                    }
+                }
+                throw error;
+            }
+        },
+        onSuccess: ({ updatedCourse }) => {
             if (updatedCourse) {
                 setCourse(updatedCourse);
                 toast.success("Lesson updated successfully");
                 queryClient.invalidateQueries({ queryKey: ["courses"] });
                 onSuccess();
             }
-
-        } catch (error) {
+        },
+        onError: (error) => {
             console.error("Lesson update failed:", error);
             toast.error("Failed to update lesson");
-
-            // --- Step 3: Rollback newly uploaded assets on failure ---
-            if (newVideoId) {
-                try {
-                    await deleteBunnyVideoApi(newVideoId);
-                    console.log("Rolled back new video upload");
-                } catch (e) {
-                    console.error("Failed to rollback video:", e);
-                }
-            }
-
-            if (newResourceUrl) {
-                try {
-                    await deleteResourceFileApi(newResourceUrl);
-                    console.log("Rolled back new resource upload");
-                } catch (e) {
-                    console.error("Failed to rollback resource:", e);
-                }
-            }
         }
+    });
+
+    const onSubmit = async (data: EditLessonFormValues) => {
+        const isVideoChanged = data.videoFile && data.videoFile.size > 0;
+        const isResourceChanged = data.resourceFile && data.resourceFile.size > 0;
+
+        if (!isVideoChanged && !isResourceChanged && data.title === lesson.title && data.duration === lesson.duration) {
+            onCancel();
+            return;
+        }
+
+        await updateLessonMutation(data);
     };
 
-    const handleDeleteResource = async () => {
-        const resourceId = lesson.resource?.[0]?.id;
-        if (!resourceId) return;
-
-        setIsDeletingResource(true);
-        try {
-            const updatedCourse = await deleteResourceApi(resourceId);
+    const { mutateAsync: deleteResourceMutation, isPending: isDeletingResource } = useMutation({
+        mutationFn: async (resourceId: number) => {
+            return await deleteResourceApi(resourceId);
+        },
+        onSuccess: (updatedCourse) => {
             if (updatedCourse) {
                 setCourse(updatedCourse);
                 queryClient.invalidateQueries({ queryKey: ["courses"] });
                 toast.success("Resource deleted successfully");
+                setIsConfirmModalOpen(false);
             }
-        } catch (error) {
+        },
+        onError: (error) => {
             console.error("Resource deletion failed:", error);
             toast.error("Failed to delete resource");
-        } finally {
-            setIsDeletingResource(false);
-            setIsConfirmModalOpen(false);
         }
+    });
+
+    const handleDeleteResource = async () => {
+        const resourceId = lesson.resource?.[0]?.id;
+        if (!resourceId) return;
+        await deleteResourceMutation(resourceId);
     };
 
     return (
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 rounded-md border border-richblack-600 bg-richblack-800 p-4" key={submitCount}>
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 rounded-md border border-richblack-600 bg-richblack-800 p-4">
             <h3 className="text-lg font-semibold text-richblack-5">Edit Lesson</h3>
 
             <Input
@@ -159,7 +168,7 @@ export const EditLessonForm: React.FC<EditLessonFormProps> = ({ lesson, onCancel
                     optional={true}
                     onDurationChange={(duration) => setValue("duration", duration)}
                 />
-                {lesson.bunnyVideoId && !isSubmitting && (
+                {lesson.bunnyVideoId && !isUpdating && (
                     <div className="mt-2 flex items-center justify-between rounded-md bg-richblack-700 p-2 border border-richblack-600">
                         <span className="text-xs text-richblack-100 truncate flex-1 mr-2">
                             Existing Video: {lesson.bunnyVideoId}
@@ -167,13 +176,13 @@ export const EditLessonForm: React.FC<EditLessonFormProps> = ({ lesson, onCancel
                         <button
                             type="button"
                             onClick={() => setShowVideoPreview(!showVideoPreview)}
-                            className="text-yellow-50 hover:text-yellow-25 text-xs font-medium"
+                            className="text-yellow-50 hover:text-yellow-25 text-xs font-medium cursor-pointer"
                         >
                             {showVideoPreview ? "Hide Preview" : "View Existing Video"}
                         </button>
                     </div>
                 )}
-                {showVideoPreview && lesson.bunnyVideoId && !isSubmitting && (
+                {showVideoPreview && lesson.bunnyVideoId && !isUpdating && (
                     <div className="mt-2 rounded-md overflow-hidden border border-richblack-600">
                         <BunnyPlayer videoId={lesson.bunnyVideoId} />
                     </div>
@@ -210,15 +219,16 @@ export const EditLessonForm: React.FC<EditLessonFormProps> = ({ lesson, onCancel
                     errors={errors}
                     initialResource={null}
                 />
-                {lesson.resource && lesson.resource.length > 0 && !isSubmitting && (
+                {lesson.resource && lesson.resource.length > 0 && !isUpdating && (
                     <div className="mt-2 flex items-center justify-between rounded-md bg-richblack-700 p-2 border border-richblack-600">
-                        <span className="text-xs text-richblack-100 truncate flex-1 mr-2">
-                            {lesson.resource[0].url.split('/').pop()}
+                        {/* Resource Name click to open in new tab and download */}
+                        <span className="text-xs text-richblack-100 truncate flex-1 mr-2 underline cursor-pointer" onClick={() => window.open(lesson?.resource?.[0]?.url, '_blank')}>
+                            {lesson?.resource?.[0]?.url.split('/').pop()}
                         </span>
                         <button
                             type="button"
                             onClick={() => setIsConfirmModalOpen(true)}
-                            className="text-pink-200 hover:text-pink-100 text-xs font-medium"
+                            className="text-pink-200 hover:text-pink-100 text-xs font-medium cursor-pointer"
                         >
                             Delete
                         </button>
@@ -241,16 +251,18 @@ export const EditLessonForm: React.FC<EditLessonFormProps> = ({ lesson, onCancel
                 <Button
                     type="button"
                     variant="secondary"
+                    className="flex items-center gap-x-2 justify-center"
                     onClick={onCancel}
-                    disabled={isSubmitting}
+                    disabled={isUpdating}
                 >
-                    Cancel
+                    Cancel <MdOutlineCancel />
                 </Button>
                 <Button
                     type="submit"
-                    disabled={isSubmitting}
+                    disabled={isUpdating}
+                    className="flex items-center gap-x-2 justify-center"
                 >
-                    {isSubmitting ? "Updating..." : "Update Lesson"}
+                    {isUpdating ? "Updating..." : "Update Lesson"} <FaRegSave />
                 </Button>
             </div>
         </form>

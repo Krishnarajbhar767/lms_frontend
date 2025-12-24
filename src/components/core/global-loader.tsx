@@ -7,20 +7,34 @@ export default function GlobalLoader() {
     const showLoader = isFetching > 0 || isMutating > 0;
 
     return (
-        <div className="fixed top-0 left-0 z-50 w-full h-[3px] overflow-hidden bg-transparent">
-            {showLoader && (
-                <div className="h-full bg-yellow-50 animate-progress origin-left"></div>
-            )}
-            <style>{`
-                @keyframes progress {
-                    0% { transform: translateX(-100%); }
-                    50% { transform: translateX(-30%); }
-                    100% { transform: translateX(100%); }
+        <>
+            {
+                showLoader && <div className="fixed top-0 left-0 z-[100000000] w-full h-[4px] overflow-hidden bg-transparent shadow-[0_0_15px_rgba(255,214,10,0.3)]">
+
+                    <div className="relative h-full w-full">
+                        {/* Primary flowing wave - using theme yellow */}
+                        <div className="absolute inset-0 bg-linear-to-r from-yellow-500 via-yellow-50 to-yellow-500 bg-size-[200%_100%] animate-wave-flow"></div>
+
+                        {/* Secondary lighter wave for depth */}
+                        <div className="absolute inset-0 bg-linear-to-r from-transparent via-white/40 to-transparent bg-size-[200%_100%] animate-wave-flow-fast"></div>
+                    </div>
+
+                    <style>{`
+                @keyframes wave-flow {
+                    0% { background-position: 200% 0; }
+                    100% { background-position: -200% 0; }
                 }
-                .animate-progress {
-                    animation: progress 1.5s infinite ease-in-out;
+                .animate-wave-flow {
+                    animation: wave-flow 3s linear infinite;
+                }
+                .animate-wave-flow-fast {
+                    animation: wave-flow 2s linear infinite;
+                    opacity: 0.5;
                 }
             `}</style>
-        </div>
+                </div>
+            }
+        </>
+
     );
 }

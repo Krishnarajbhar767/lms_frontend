@@ -36,13 +36,13 @@ import { EditLessonForm } from "./edit-lesson-form";
 import { queryClient } from "../../../main";
 import ConfirmModal from "../../../components/core/confirm-modal";
 import BunnyPlayer from "../../../components/core/bunny-player";
+import { useMutation } from "@tanstack/react-query";
 
 
 
 export const CourseBuilderForm = () => {
     const { course, updateCourse } = useCourseStore();
     const { nextStep, prevStep } = useStepsStore();
-    const [loading, setLoading] = useState(false);
 
     const {
         register,
@@ -55,66 +55,73 @@ export const CourseBuilderForm = () => {
         },
     });
 
-    const onCreateSection = async (data: { sectionName: string }) => {
-        setLoading(true);
-        try {
-            const result = await createSection(data.sectionName, course.id!);
+    const { mutateAsync: createSectionMutation, isPending: isCreatingSection } = useMutation({
+        mutationFn: async (sectionName: string) => {
+            return await createSection(sectionName, course.id!);
+        },
+        onSuccess: (result) => {
             if (result) {
-                // Initialize lessons array if not present
                 const newSection = { ...result, lessons: [] };
                 let updatedSections = [...(course.sections || []), newSection];
                 updateCourse({ sections: updatedSections });
                 setValue("sectionName", "");
                 toast.success("Section created successfully");
             }
-        } catch (error) {
+        },
+        onError: () => {
             toast.error("Failed to create section");
-        } finally {
-            setLoading(false);
         }
+    });
+
+    const onCreateSection = async (data: { sectionName: string }) => {
+        await createSectionMutation(data.sectionName);
     };
+
+    const { mutateAsync: reorderSectionsMutation } = useMutation({
+        mutationFn: async (newSections: Section[]) => {
+            const sectionOrder = newSections.map((s, index) => ({ id: s.id, order: index + 1 }));
+            return await reorderSections(course.id!, sectionOrder);
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["courses"] });
+        },
+        onError: (error: any) => {
+            console.error("Reorder failed", error);
+            const msg = error?.response?.data?.message || error.message || "Unknown error";
+            toast.error("Failed to save section order: " + msg);
+        }
+    });
 
     const handleReorderSections = async (newSections: Section[]) => {
         if (!course.id) {
             toast.error("Course ID is missing. Please save course first.");
             return;
         }
-
         updateCourse({ sections: newSections });
-        // Optimistic update done, now sync with backend
-        const sectionOrder = newSections.map((s, index) => ({ id: s.id, order: index + 1 }));
-
-        try {
-            await reorderSections(course.id, sectionOrder);
-            // Invalidate courses query to refetch fresh data
-            queryClient.invalidateQueries({ queryKey: ["courses"] });
-        } catch (error: any) {
-            console.error("Reorder failed", error);
-            const msg = error?.response?.data?.message || error.message || "Unknown error";
-            toast.error("Failed to save section order: " + msg);
-        }
+        await reorderSectionsMutation(newSections);
     };
 
-    const handleReorderLessons = async (sectionId: number, newLessons: Lesson[]) => {
-        // Update local state first
-        if (!course.sections) return;
-
-        const updatedSections = course.sections.map(s =>
-            s.id === sectionId ? { ...s, lessons: newLessons } : s
-        );
-
-        updateCourse({ sections: updatedSections });
-
-        // Prepare payload
-        const lessonOrder = newLessons.map((l, index) => ({ id: l.id, order: index + 1 }));
-
-        try {
-            await reorderLessonsApi(sectionId, lessonOrder);
+    const { mutateAsync: reorderLessonsMutation } = useMutation({
+        mutationFn: async ({ sectionId, newLessons }: { sectionId: number, newLessons: Lesson[] }) => {
+            const lessonOrder = newLessons.map((l, index) => ({ id: l.id, order: index + 1 }));
+            return await reorderLessonsApi(sectionId, lessonOrder);
+        },
+        onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["courses"] });
-        } catch (error: any) {
+        },
+        onError: (error: any) => {
             console.error("Lesson reorder failed", error);
             toast.error("Failed to save lesson order");
         }
+    });
+
+    const handleReorderLessons = async (sectionId: number, newLessons: Lesson[]) => {
+        if (!course.sections) return;
+        const updatedSections = course.sections.map(s =>
+            s.id === sectionId ? { ...s, lessons: newLessons } : s
+        );
+        updateCourse({ sections: updatedSections });
+        await reorderLessonsMutation({ sectionId, newLessons });
     }
 
 
@@ -193,10 +200,10 @@ export const CourseBuilderForm = () => {
                     type="submit"
                     variant="outline"
                     className="flex items-center gap-x-2 border-yellow-50 text-yellow-50"
-                    disabled={loading}
+                    disabled={isCreatingSection}
                 >
                     <GrAddCircle className="text-yellow-50" />
-                    Create Section
+                    {isCreatingSection ? "Creating..." : "Create Section"}
                 </Button>
             </form>
 
@@ -244,23 +251,42 @@ const NestedSection = ({ section }: { section: Section, courseId: number }) => {
 
     // Deletion
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-    const [deleting, setDeleting] = useState(false);
 
-    // Deletion
-    const handleDeleteSection = async () => {
-        setDeleting(true);
-        try {
-            await deleteSection(section.id);
+    const { mutateAsync: deleteSectionMutation, isPending: isDeletingSection } = useMutation({
+        mutationFn: async (id: number) => {
+            return await deleteSection(id);
+        },
+        onSuccess: () => {
             const updatedSections = course.sections?.filter(s => s.id !== section.id);
             updateCourse({ sections: updatedSections });
             toast.success("Section deleted");
             setShowDeleteConfirm(false);
-        } catch (e) {
+        },
+        onError: () => {
             toast.error("Failed to delete section");
-        } finally {
-            setDeleting(false);
         }
+    });
+
+    const handleDeleteSection = async () => {
+        await deleteSectionMutation(section.id);
     }
+
+    const { mutateAsync: updateSectionMutation } = useMutation({
+        mutationFn: async (newName: string) => {
+            return await updateSection(section.id, newName);
+        },
+        onSuccess: (updated) => {
+            if (updated) {
+                const updatedSections = course.sections?.map(s => s.id === section.id ? { ...s, title: sectionName } : s);
+                updateCourse({ sections: updatedSections });
+                setIsEditingSection(false);
+                toast.success("Section updated");
+            }
+        },
+        onError: () => {
+            toast.error("Failed to update section");
+        }
+    });
 
     // Edit Section Name
     const handleEditSection = async () => {
@@ -268,18 +294,7 @@ const NestedSection = ({ section }: { section: Section, courseId: number }) => {
             toast.error("Section name cannot be empty");
             return;
         }
-
-        try {
-            const updated = await updateSection(section.id, sectionName);
-            if (updated) {
-                const updatedSections = course.sections?.map(s => s.id === section.id ? { ...s, title: sectionName } : s);
-                updateCourse({ sections: updatedSections });
-                setIsEditingSection(false);
-                toast.success("Section updated");
-            }
-        } catch (e) {
-            toast.error("Failed to update section");
-        }
+        await updateSectionMutation(sectionName);
     }
 
     const {
@@ -377,7 +392,7 @@ const NestedSection = ({ section }: { section: Section, courseId: number }) => {
                 confirmText="Delete"
                 cancelText="Cancel"
                 variant="danger"
-                loading={deleting}
+                loading={isDeletingSection}
                 onConfirm={handleDeleteSection}
                 onCancel={() => setShowDeleteConfirm(false)}
             />
@@ -391,15 +406,13 @@ const NestedLesson: React.FC<{
     updateCourse: (updates: Partial<Course>) => void;
 }> = ({ lesson, course, updateCourse }) => {
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-    const [deleting, setDeleting] = useState(false);
     const [isEditingLesson, setIsEditingLesson] = useState(false);
 
-    const handleDeleteLesson = async () => {
-        setDeleting(true);
-        try {
-            await deleteLesson(lesson.id);
-
-            // Optimistically update the UI
+    const { mutateAsync: deleteLessonMutation, isPending: isDeletingLesson } = useMutation({
+        mutationFn: async (id: number) => {
+            return await deleteLesson(id);
+        },
+        onSuccess: () => {
             const newSections = course.sections?.map(section => {
                 if (section.id === lesson.sectionId) {
                     return {
@@ -414,12 +427,15 @@ const NestedLesson: React.FC<{
             queryClient.invalidateQueries({ queryKey: ["course"] });
             toast.success("Lesson deleted successfully");
             setShowDeleteConfirm(false);
-        } catch (error) {
+        },
+        onError: (error) => {
             console.error(error);
             toast.error("Failed to delete lesson");
-        } finally {
-            setDeleting(false);
         }
+    });
+
+    const handleDeleteLesson = async () => {
+        await deleteLessonMutation(lesson.id);
     };
 
     const {
@@ -492,7 +508,7 @@ const NestedLesson: React.FC<{
                 confirmText="Delete"
                 cancelText="Cancel"
                 variant="danger"
-                loading={deleting}
+                loading={isDeletingLesson}
                 onConfirm={handleDeleteLesson}
                 onCancel={() => setShowDeleteConfirm(false)}
             />

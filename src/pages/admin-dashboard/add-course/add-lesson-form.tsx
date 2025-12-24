@@ -1,4 +1,5 @@
 import { useForm } from "react-hook-form";
+import { toast } from "react-hot-toast";
 import Input from "../../../components/core/input";
 import Button from "../../../components/core/button";
 import UploadVideo from "../../../components/core/upload-video";
@@ -11,6 +12,7 @@ import { useCourseStore } from "../../../store/course.store";
 import { deleteResourceFileApi } from "../../../service/api/course-builder.api";
 import { IoCreateSharp } from "react-icons/io5";
 import { MdOutlineCancel } from "react-icons/md";
+import { useMutation } from "@tanstack/react-query";
 
 type AddLessonFormProps = {
     sectionId: number;
@@ -26,69 +28,81 @@ interface AddLessonFormValues {
 }
 
 export const AddLessonForm = ({ sectionId, onCancel, onSuccess }: AddLessonFormProps) => {
-    const { register, handleSubmit, setValue, watch, formState: { errors, submitCount, isSubmitting } } = useForm<AddLessonFormValues>();
+    const { register, handleSubmit, setValue, watch, formState: { errors, submitCount } } = useForm<AddLessonFormValues>();
     const videoFile = watch("videoFile");
     const duration = watch("duration");
     const setCourse = useCourseStore((state) => state?.setCourse);
-    const onSubmit = async (data: AddLessonFormValues) => {
-        let resourceUrl = '';
-        let videoId = '';
+    const { mutateAsync: createLessonMutation, isPending: isCreating } = useMutation({
+        mutationFn: async (data: AddLessonFormValues) => {
+            let resourceUrl = '';
+            let videoId = '';
 
-        try {
-            // --- Step 1: Create Video Entry in Bunny ---
-            const createVideoRes = await apiCreateBunnyVideo(data.title);
-            videoId = createVideoRes.videoId; // Store videoId for potential cleanup
+            try {
+                // --- Step 1: Create Video Entry in Bunny ---
+                const createVideoRes = await apiCreateBunnyVideo(data.title);
+                videoId = createVideoRes.videoId;
 
-            // --- Step 2: Upload Video File ---
-            await apiUploadToBunny(data.videoFile, createVideoRes.uploadUrl, createVideoRes.accessKey);
+                // --- Step 2: Upload Video File ---
+                await apiUploadToBunny(data.videoFile, createVideoRes.uploadUrl, createVideoRes.accessKey);
 
+                // --- Step 3: Handle Resource File Upload (Optional) ---
+                if (data.resourceFile && data.resourceFile.size > 0) {
+                    const isValidType = data.resourceFile.type.startsWith("application/pdf") ||
+                        data.resourceFile.type.startsWith("application/msword") ||
+                        data.resourceFile.type.startsWith("application/vnd.openxmlformats-officedocument.wordprocessingml.document");
 
-            // --- Step 3: Handle Resource File Upload (Optional) ---
-            if (data.resourceFile && data.resourceFile.size > 0) {
-                // Determine if file type is valid (PDF, Word, etc.) - logic kept from original but could be moved to util
-                const isValidType = data.resourceFile.type.startsWith("application/pdf") ||
-                    data.resourceFile.type.startsWith("application/msword") ||
-                    data.resourceFile.type.startsWith("application/vnd.openxmlformats-officedocument.wordprocessingml.document");
-
-                if (isValidType) {
-                    const uploadRes = await uploadResourceApi(data.resourceFile);
-                    if (uploadRes) {
-                        resourceUrl = uploadRes?.resourceUrl;
+                    if (isValidType) {
+                        const uploadRes = await uploadResourceApi(data.resourceFile);
+                        if (uploadRes) {
+                            resourceUrl = uploadRes?.resourceUrl;
+                        }
                     }
                 }
-            }
 
-            // --- Step 4: Create Lesson in Backend ---
-            const course = await createLessonApi({
-                title: data.title,
-                sectionId,
-                bunnyVideoId: videoId,
-                duration: data.duration || 0,
-                resource: resourceUrl
-            });
-            // set new course in the course store and  invalidate course query
-            setCourse(course)
+                // --- Step 4: Create Lesson in Backend ---
+                const course = await createLessonApi({
+                    title: data.title,
+                    sectionId,
+                    bunnyVideoId: videoId,
+                    duration: data.duration || 0,
+                    resource: resourceUrl
+                });
+
+                return { course, videoId, resourceUrl };
+
+            } catch (error) {
+                // Cleanup on failure
+                if (videoId) {
+                    try {
+                        await deleteBunnyVideoApi(videoId);
+                    } catch (cleanupError) {
+                        console.error("Failed to cleanup bunny video:", cleanupError);
+                    }
+                }
+                if (resourceUrl) {
+                    try {
+                        await deleteResourceFileApi(resourceUrl);
+                    } catch (cleanupError) {
+                        console.error("Failed to cleanup resource:", cleanupError);
+                    }
+                }
+                throw error;
+            }
+        },
+        onSuccess: ({ course }) => {
+            setCourse(course);
             queryClient.invalidateQueries({ queryKey: ["courses"] });
             onSuccess();
-
-        } catch (error) {
+            toast.success("Lesson created successfully");
+        },
+        onError: (error) => {
             console.error("Lesson creation failed:", error);
-            // Cleanup
-            if (videoId) {
-                try {
-                    await deleteBunnyVideoApi(videoId);
-                } catch (cleanupError) {
-                    console.error("Failed to cleanup bunny video:", cleanupError);
-                }
-            }
-            if (resourceUrl) {
-                try {
-                    await deleteResourceFileApi(resourceUrl);
-                } catch (cleanupError) {
-                    console.error("Failed to cleanup resource:", cleanupError);
-                }
-            }
+            toast.error("Failed to create lesson");
         }
+    });
+
+    const onSubmit = async (data: AddLessonFormValues) => {
+        await createLessonMutation(data);
     };
 
     return (
@@ -163,10 +177,10 @@ export const AddLessonForm = ({ sectionId, onCancel, onSuccess }: AddLessonFormP
                 </Button>
                 <Button
                     type="submit"
-                    disabled={isSubmitting}
+                    disabled={isCreating}
                     className="flex items-center gap-x-2 justify-center"
                 >
-                    {isSubmitting ? "Creating..." : "Create Lesson"} <IoCreateSharp />
+                    {isCreating ? "Creating..." : "Create Lesson"} <IoCreateSharp />
                 </Button>
             </div>
         </form>

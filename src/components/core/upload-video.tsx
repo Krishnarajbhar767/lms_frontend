@@ -132,7 +132,7 @@ export default function UploadVideo({
                                 </span>
                             </p>
                             <p className="mt-2 text-xs text-richblack-400">
-                                Max file size: 6MB • MP4, MKV, MOV
+                                MP4, MKV, MOV
                             </p>
                         </div>
                     </div>
