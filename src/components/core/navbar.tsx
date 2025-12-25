@@ -1,6 +1,6 @@
 // Navbar.tsx
 import { useRef, useState } from "react"
-import { AiOutlineMenu } from "react-icons/ai"
+import { AiOutlineClose, AiOutlineMenu } from "react-icons/ai"
 import { BsChevronDown } from "react-icons/bs"
 import { Link } from "react-router-dom"
 
@@ -24,6 +24,7 @@ export type Category = {
 }
 function Navbar() {
     const [showCatalog, setShowCatalog] = useState(false)
+    const [isMenuOpen, setIsMenuOpen] = useState(false)
     const hideTimerRef = useRef<number | null>(null)
     const user = useUserStore((state) => state.user)
     const { data: categories } = useQuery({
@@ -42,7 +43,6 @@ function Navbar() {
         // Prevent retry storms
         retry: false,
     })
-
 
     return (
         <div
@@ -128,10 +128,93 @@ function Navbar() {
                     <ProfileDropdown />
                 </div>}
 
-                {/* Mobile menu icon (no functionality, just UI) */}
-                <button className="mr-4 md:hidden cursor-pointer">
-                    <AiOutlineMenu fontSize={24} fill="#AFB2BF" />
+                {/* Mobile menu icon */}
+                <button
+                    className="mr-4 md:hidden cursor-pointer z-[1001]"
+                    onClick={() => setIsMenuOpen(!isMenuOpen)}
+                >
+                    {isMenuOpen ? (
+                        <AiOutlineClose fontSize={24} fill="#AFB2BF" />
+                    ) : (
+                        <AiOutlineMenu fontSize={24} fill="#AFB2BF" />
+                    )}
                 </button>
+
+                {/* Mobile Menu Overlay */}
+                {isMenuOpen && (
+                    <div
+                        className="fixed inset-0 z-[1000] bg-richblack-900 bg-opacity-50 md:hidden"
+                        onClick={() => setIsMenuOpen(false)}
+                    >
+                        <div
+                            className="absolute right-0 top-0 h-full w-[250px] bg-richblack-800 p-6 shadow-2xl transition-all duration-300 transform translate-x-0"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <div className="flex flex-col gap-y-6 mt-10">
+                                {NAVBAR_LINKS.map((link, index) => (
+                                    <li key={index} className="list-none">
+                                        {link.title === "Category" ? (
+                                            <div className="flex flex-col gap-2">
+                                                <div className="flex items-center justify-between text-richblack-25 border-b border-richblack-700 pb-2">
+                                                    <p>{link.title}</p>
+                                                </div>
+                                                <div className="flex flex-col gap-2 pl-4">
+                                                    {categories?.length ? (
+                                                        categories?.map((subLink, i) => (
+                                                            <Link
+                                                                key={i}
+                                                                to={`/categories/${subLink.name
+                                                                    .split(" ")
+                                                                    .join("-")
+                                                                    .toLowerCase()}`}
+                                                                onClick={() => setIsMenuOpen(false)}
+                                                                className="text-richblack-100 hover:text-yellow-50"
+                                                            >
+                                                                {subLink.name}
+                                                            </Link>
+                                                        ))
+                                                    ) : (
+                                                        <p className="text-richblack-400 text-sm italic">No Category Found</p>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <Link
+                                                to={link.path}
+                                                onClick={() => setIsMenuOpen(false)}
+                                                className="text-richblack-25 text-lg font-medium hover:text-yellow-50 active:text-yellow-50 border-b border-richblack-700 pb-2 block"
+                                            >
+                                                {link.title}
+                                            </Link>
+                                        )}
+                                    </li>
+                                ))}
+
+                                <div className="mt-4 flex flex-col gap-y-4">
+                                    {user === null ? (
+                                        <>
+                                            <Link to="/login" onClick={() => setIsMenuOpen(false)}>
+                                                <button className="w-full rounded-[8px] border border-richblack-700 bg-richblack-800 px-[12px] py-[8px] text-richblack-100 text-center">
+                                                    Log in
+                                                </button>
+                                            </Link>
+                                            <Link to="/register" onClick={() => setIsMenuOpen(false)}>
+                                                <button className="w-full rounded-[8px] border border-richblack-700 bg-richblack-800 px-[12px] py-[8px] text-richblack-100 text-center">
+                                                    Sign up
+                                                </button>
+                                            </Link>
+                                        </>
+                                    ) : (
+                                        <div className="flex flex-col gap-4">
+                                            <p className="text-richblack-100">Welcome, {user.firstName}</p>
+                                            <ProfileDropdown />
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     )

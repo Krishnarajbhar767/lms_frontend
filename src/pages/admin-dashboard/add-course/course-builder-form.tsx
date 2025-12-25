@@ -33,6 +33,7 @@ import { useStepsStore } from "../../../store/steps.store";
 
 import { AddLessonForm } from "./add-lesson-form";
 import { EditLessonForm } from "./edit-lesson-form";
+import QuizEditor from "./quize-editor";
 import { queryClient } from "../../../main";
 import ConfirmModal from "../../../components/core/confirm-modal";
 import BunnyPlayer from "../../../components/core/bunny-player";
@@ -43,6 +44,7 @@ import { useMutation } from "@tanstack/react-query";
 export const CourseBuilderForm = () => {
     const { course, updateCourse } = useCourseStore();
     const { nextStep, prevStep } = useStepsStore();
+    const [activeQuizSection, setActiveQuizSection] = useState<{ id: number, title: string } | null>(null);
 
     const {
         register,
@@ -223,6 +225,7 @@ export const CourseBuilderForm = () => {
                                     key={section.id}
                                     section={section}
                                     courseId={course.id!}
+                                    setActiveQuiz={setActiveQuizSection}
                                 />
                             ))}
                         </div>
@@ -238,11 +241,29 @@ export const CourseBuilderForm = () => {
                     Next <IoMdArrowRoundForward />
                 </Button>
             </div>
+
+            {activeQuizSection && (
+                <div
+                    onClick={() => setActiveQuizSection(null)}
+                    className="fixed inset-0 z-100 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 overflow-y-auto cursor-pointer"
+                >
+                    <div
+                        onClick={(e) => e.stopPropagation()}
+                        className="w-full max-w-4xl max-h-[90vh] cursor-default"
+                    >
+                        <QuizEditor
+                            sectionId={activeQuizSection.id}
+                            sectionTitle={activeQuizSection.title}
+                            onBack={() => setActiveQuizSection(null)}
+                        />
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
 
-const NestedSection = ({ section }: { section: Section, courseId: number }) => {
+const NestedSection = ({ section, setActiveQuiz }: { section: Section, courseId: number, setActiveQuiz: (s: { id: number, title: string }) => void }) => {
     const { updateCourse, course } = useCourseStore();
     const [isExpanded, setIsExpanded] = useState(true);
     const [addSubSection, setAddSubSection] = useState(false);
@@ -347,6 +368,12 @@ const NestedSection = ({ section }: { section: Section, courseId: number }) => {
                                 </button>
                             )
                         }
+                        <button
+                            onClick={() => setActiveQuiz({ id: section.id, title: section.title })}
+                            className="bg-yellow-50/10 text-yellow-50 px-3 py-1 rounded-md text-sm font-bold hover:bg-yellow-50 hover:text-richblack-900 transition-all border border-yellow-50/20"
+                        >
+                            Quiz
+                        </button>
                         <button onClick={() => setShowDeleteConfirm(true)} className="text-richblack-300 hover:text-pink-200">
                             <MdDelete size={20} />
                         </button>

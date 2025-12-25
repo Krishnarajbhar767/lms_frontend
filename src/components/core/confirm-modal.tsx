@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { RxCross2 } from "react-icons/rx";
+import { RxCheck, RxCross2 } from "react-icons/rx";
 
 interface ConfirmModalProps {
     isOpen: boolean;
@@ -15,9 +15,10 @@ interface ConfirmModalProps {
 }
 
 const VARIANT_STYLES = {
-    danger: "bg-pink-200 hover:bg-pink-100 text-richblack-900",
-    primary: "bg-yellow-50 hover:bg-yellow-25 text-richblack-900",
-    neutral: "bg-richblack-700 hover:bg-richblack-600 text-richblack-5",
+    // with red bg black text is not visable don something else
+    danger: "bg-red-600 hover:bg-red-500 text-white/90 hover:scale-95 transition-all cursor-pointer",
+    primary: "bg-yellow-50 hover:bg-yellow-25 text-richblack-900 hover:scale-95 transition-all cursor-pointer",
+    neutral: "bg-richblack-700 hover:bg-richblack-600 text-richblack-5 hover:scale-95 transition-all cursor-pointer",
 };
 
 export default function ConfirmModal({
@@ -86,17 +87,17 @@ export default function ConfirmModal({
                     <button
                         onClick={onCancel}
                         disabled={loading}
-                        className="cursor-pointer px-4 py-2 rounded-md bg-richblack-700 hover:bg-richblack-600 text-richblack-5 text-sm transition disabled:opacity-50"
+                        className="hover:scale-95 transition-all cursor-pointer px-4 py-2 rounded-md bg-richblack-700 hover:bg-richblack-600 text-richblack-5 text-sm  disabled:opacity-50 flex items-center gap-2"
                     >
-                        {cancelText}
+                        {cancelText} <RxCross2 size={18} />
                     </button>
 
                     <button
                         onClick={onConfirm}
                         disabled={loading}
-                        className={`cursor-pointer px-4 py-2 rounded-md text-sm font-medium transition disabled:opacity-50 ${VARIANT_STYLES[variant]}`}
+                        className={`cursor-pointer px-4 py-2 rounded-md text-sm font-medium transition disabled:opacity-50 ${VARIANT_STYLES[variant]} flex items-center gap-2`}
                     >
-                        {loading ? "Please wait..." : confirmText}
+                        {loading ? "Please wait..." : confirmText} <RxCheck size={18} />
                     </button>
                 </div>
             </div>

@@ -31,6 +31,26 @@ export interface Lesson {
     order: number;
 }
 
+// Quiz Interfaces
+export interface Option {
+    id?: number;
+    title: string;
+    isCorrect: boolean;
+}
+
+export interface Question {
+    id?: number;
+    title: string;
+    options: Option[];
+}
+
+export interface Quize {
+    id?: number;
+    title: string;
+    sectionId: number;
+    questions: Question[];
+}
+
 // API Functions
 
 // Section APIs
@@ -92,4 +112,21 @@ export const deleteResourceApi = async (resourceId: number) => {
     const res = await axiosInstance.delete<ApiResponse<Course>>(CourseEndpoints.deleteResource(resourceId))
     return res?.data?.data
 }
+
+// Quiz APIs
+export const upsertQuize = async (data: { sectionId: number; title: string; questions: Question[] }) => {
+    const res = await axiosInstance.post<ApiResponse<Quize>>("/quizes/upsert", data)
+    return res?.data?.data
+}
+
+export const getQuizeBySection = async (sectionId: number) => {
+    const res = await axiosInstance.get<ApiResponse<Quize>>(`/quizes/section/${sectionId}`)
+    return res?.data?.data
+}
+
+export const deleteQuize = async (quizeId: number) => {
+    const res = await axiosInstance.delete<ApiResponse<null>>(`/quizes/${quizeId}`)
+    return res?.data?.data
+}
+
 
