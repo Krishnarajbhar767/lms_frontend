@@ -18,7 +18,9 @@ const QuizEditor: React.FC<QuizEditorProps> = ({ sectionId, sectionTitle, onBack
     const [title, setTitle] = useState(`${sectionTitle} Quiz`);
     const [questions, setQuestions] = useState<Question[]>([]);
     const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+    const [isBackConfirmOpen, setIsBackConfirmOpen] = useState(false);
     const [isInitialized, setIsInitialized] = useState(false);
+    const [initialState, setInitialState] = useState<{ title: string; questions: string }>({ title: '', questions: '' });
 
     const { data: existingQuiz, isLoading } = useQuery({
         queryKey: ['quize', sectionId],
@@ -29,9 +31,22 @@ const QuizEditor: React.FC<QuizEditorProps> = ({ sectionId, sectionTitle, onBack
         if (existingQuiz && !isInitialized) {
             setTitle(existingQuiz.title);
             setQuestions(existingQuiz.questions);
+            setInitialState({
+                title: existingQuiz.title,
+                questions: JSON.stringify(existingQuiz.questions)
+            });
+            setIsInitialized(true);
+        } else if (!existingQuiz && !isInitialized && !isLoading) {
+            // New quiz initial state
+            setInitialState({
+                title: `${sectionTitle} Quiz`,
+                questions: JSON.stringify([])
+            });
             setIsInitialized(true);
         }
-    }, [existingQuiz, isInitialized]);
+    }, [existingQuiz, isInitialized, isLoading, sectionTitle]);
+
+    const isDirty = title !== initialState.title || JSON.stringify(questions) !== initialState.questions;
 
     const mutation = useMutation({
         mutationFn: (data: { sectionId: number; title: string; questions: Question[] }) => upsertQuize(data),
@@ -56,6 +71,14 @@ const QuizEditor: React.FC<QuizEditorProps> = ({ sectionId, sectionTitle, onBack
             toast.error(error?.response?.data?.message || 'Failed to remove quiz');
         }
     });
+
+    const handleBack = () => {
+        if (isDirty) {
+            setIsBackConfirmOpen(true);
+        } else {
+            onBack();
+        }
+    };
 
     const removeQuiz = () => {
         setIsConfirmModalOpen(true);
@@ -113,21 +136,31 @@ const QuizEditor: React.FC<QuizEditorProps> = ({ sectionId, sectionTitle, onBack
     };
 
     const handleSave = () => {
-        if (!title.trim()) return toast.error('Quiz title is required');
+        const trimmedTitle = title.trim();
+        if (!trimmedTitle) return toast.error('Quiz title is required');
 
         // If they try to save with 0 questions
         if (questions.length === 0) {
-            return toast.error('Please add at least one question or remove the quiz using the "Remove Quiz" button');
+            if (existingQuiz) {
+                return toast.error('Please add at least one question or remove the quiz using the "Remove Quiz" button');
+            } else {
+                return toast.error('Please add at least one question to save the quiz, or use the back button to cancel');
+            }
         }
 
-        for (const q of questions) {
-            if (!q.title.trim()) return toast.error('All questions must have a title');
-            if (q.options.length < 2) return toast.error('Each question must have at least 2 options');
-            if (!q.options.some((o: Option) => o.isCorrect)) return toast.error(`Question "${q.title}" must have a correct option`);
-            if (q.options.some((o: Option) => !o.title.trim())) return toast.error('All options must have a title');
+        // Deep validation
+        for (let i = 0; i < questions.length; i++) {
+            const q = questions[i];
+            if (!q.title.trim()) return toast.error(`Question ${i + 1} must have a title`);
+            if (q.options.length < 2) return toast.error(`Question ${i + 1} must have at least 2 options`);
+            if (!q.options.some((o: Option) => o.isCorrect)) return toast.error(`Question ${i + 1} must have a correct option marked`);
+
+            for (let j = 0; j < q.options.length; j++) {
+                if (!q.options[j].title.trim()) return toast.error(`Option ${j + 1} in Question ${i + 1} must have a title`);
+            }
         }
 
-        mutation.mutate({ sectionId, title, questions });
+        mutation.mutate({ sectionId, title: trimmedTitle, questions });
     };
 
     if (isLoading) return <div className="p-10 text-center text-richblack-50">Loading Quiz...</div>;
@@ -136,7 +169,7 @@ const QuizEditor: React.FC<QuizEditorProps> = ({ sectionId, sectionTitle, onBack
         <div className="bg-richblack-800 rounded-xl shadow-2xl border border-richblack-700 overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="p-6 border-b border-richblack-700 bg-richblack-900 flex flex-col sm:flex-row items-center justify-between gap-4">
                 <div className="flex items-center gap-4 w-full sm:w-auto">
-                    <button onClick={onBack} className="p-2 hover:bg-richblack-700 rounded-full transition-all text-richblack-300 hover:text-yellow-50">
+                    <button onClick={handleBack} className="p-2 hover:bg-richblack-700 rounded-full transition-all text-richblack-300 hover:text-yellow-50">
                         <MdChevronLeft size={24} />
                     </button>
                     <div>
@@ -265,6 +298,18 @@ const QuizEditor: React.FC<QuizEditorProps> = ({ sectionId, sectionTitle, onBack
                 cancelText="Cancel"
                 variant="danger"
                 loading={deleteMutation.isPending}
+            />
+
+            {/* Unsaved Changes Modal */}
+            <ConfirmModal
+                isOpen={isBackConfirmOpen}
+                onCancel={() => setIsBackConfirmOpen(false)}
+                onConfirm={onBack}
+                title="Unsaved Changes"
+                description="You have unsaved changes. Are you sure you want to leave? Your changes will be lost."
+                confirmText="Leave"
+                cancelText="Stay"
+                variant="danger"
             />
         </div>
     );

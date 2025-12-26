@@ -434,6 +434,7 @@ const NestedLesson: React.FC<{
 }> = ({ lesson, course, updateCourse }) => {
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [isEditingLesson, setIsEditingLesson] = useState(false);
+    const [isExpanded, setIsExpanded] = useState(false);
 
     const { mutateAsync: deleteLessonMutation, isPending: isDeletingLesson } = useMutation({
         mutationFn: async (id: number) => {
@@ -486,11 +487,7 @@ const NestedLesson: React.FC<{
                         <MdDragIndicator className="text-lg text-richblack-300" />
                     </div>
 
-                    <div className="flex items-center gap-x-3 cursor-pointer w-full" onClick={() => {
-                        // Toggle open state for lesson view
-                        const element = document.getElementById(`lesson-view-${lesson.id}`);
-                        if (element) element.classList.toggle("hidden");
-                    }}>
+                    <div className="flex items-center gap-x-3 cursor-pointer w-full" onClick={() => setIsExpanded(!isExpanded)}>
                         <span className="text-richblack-50">{lesson.title}</span>
                         <div className="ml-auto flex items-center gap-x-3">
                             <button onClick={(e) => { e.stopPropagation(); setIsEditingLesson(true); }} className="text-richblack-300 hover:text-yellow-50">
@@ -499,7 +496,7 @@ const NestedLesson: React.FC<{
                             <button onClick={(e) => { e.stopPropagation(); setShowDeleteConfirm(true); }} className="text-richblack-300 hover:text-pink-200">
                                 <MdDelete size={20} />
                             </button>
-                            <IoIosArrowDown className="text-sm text-richblack-300" />
+                            <IoIosArrowDown className={`text-sm text-richblack-300 transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`} />
                         </div>
                     </div>
                 </div>
@@ -514,18 +511,20 @@ const NestedLesson: React.FC<{
                     />
                 </div>
             ) : (
-                <div id={`lesson-view-${lesson.id}`} className="hidden mt-2 pl-8">
-                    {lesson.bunnyVideoId && (
-                        <div className="mb-2">
-                            <BunnyPlayer videoId={lesson.bunnyVideoId} />
-                        </div>
-                    )}
-                    {lesson.resource && lesson.resource.length > 0 && (
-                        <a href={lesson.resource[0].url} target="_blank" rel="noopener noreferrer" className="text-yellow-50 underline text-sm">
-                            View Resource
-                        </a>
-                    )}
-                </div>
+                isExpanded && (
+                    <div className="mt-2 pl-8 animate-in fade-in slide-in-from-top-1 duration-200">
+                        {lesson.bunnyVideoId && (
+                            <div className="mb-2">
+                                <BunnyPlayer videoId={lesson.bunnyVideoId} />
+                            </div>
+                        )}
+                        {lesson.resource && lesson.resource.length > 0 && (
+                            <a href={lesson.resource[0].url} target="_blank" rel="noopener noreferrer" className="text-yellow-50 underline text-sm hover:text-yellow-100 transition-colors">
+                                View Resource
+                            </a>
+                        )}
+                    </div>
+                )
             )}
 
             <ConfirmModal
