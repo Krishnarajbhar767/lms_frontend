@@ -16,6 +16,10 @@ export const AuthEndpoints = {
 
 export const CategoryEndpoints = {
     getAllCategories: `${BASE}/categories/all`,
+    getAdminCategories: `${BASE}/categories/admin-all`,
+    createCategory: `${BASE}/categories`,
+    updateCategory: (id: number) => `${BASE}/categories/${id}`,
+    deleteCategory: (id: number) => `${BASE}/categories/${id}`,
 }
 
 export const CourseEndpoints = {

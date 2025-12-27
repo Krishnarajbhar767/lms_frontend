@@ -14,6 +14,7 @@ import { PublicLayout } from "./layout/public-layout";
 import NotFound from "./components/core/not-found";
 import AdminCourses from "./pages/admin-dashboard/courses/admin-courses";
 import GlobalLoader from "./components/core/global-loader";
+import CategoryPage from "./pages/admin-dashboard/category/category-page";
 
 function App() {
 
@@ -39,6 +40,7 @@ function App() {
         <Route path="/admin/*" element={<AdminLayout />}>
           <Route path="add-course" element={<AdminCoursesManagement />} />
           <Route path="courses" element={<AdminCourses />} />
+          <Route path="categories" element={<CategoryPage />} />
         </Route>
 
       </Routes>

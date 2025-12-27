@@ -4,6 +4,7 @@ import {
     VscBook,
     VscAdd,
     VscSettingsGear,
+    VscListFlat, // Added for Categories
 } from "react-icons/vsc"
 import { VscSignOut } from "react-icons/vsc"
 
@@ -23,6 +24,11 @@ export const ADMIN_LINKS = [
         name: "Courses",
         path: "/admin/courses",
         icon: VscBook,
+    },
+    {
+        name: "Categories",
+        path: "/admin/categories",
+        icon: VscListFlat,
     },
     {
         name: "Add",

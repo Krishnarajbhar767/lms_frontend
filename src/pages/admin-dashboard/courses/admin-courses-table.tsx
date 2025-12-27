@@ -114,7 +114,7 @@ const AdminCoursesTable = ({
                     <button
                         title="Edit"
                         onClick={() => courseEditHandler(params.data)}
-                        className="p-2 transition-all duration-200 hover:scale-110 hover:text-caribbeangreen-300 text-richblack-100"
+                        className="cursor-pointer p-2 transition-all duration-200 hover:scale-110 hover:text-caribbeangreen-300 text-richblack-100"
                     >
                         <FiEdit2 size={20} />
                     </button>
@@ -123,7 +123,7 @@ const AdminCoursesTable = ({
                         onClick={() => archiveCourseHandler(params.data.id)}
                         // desable this  button if course statu is already archived
                         disabled={archiveCourseMutation.isPending || params.data.status === "ARCHIVED"}
-                        className="p-2 transition-all duration-200 hover:scale-110 hover:text-[#ff0000] text-richblack-100"
+                        className="cursor-pointer p-2 transition-all duration-200 hover:scale-110 hover:text-[#ff0000] text-richblack-100"
                     >
                         <RiDeleteBin6Line size={20} />
                     </button>
