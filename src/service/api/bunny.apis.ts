@@ -18,12 +18,18 @@ export async function apiCreateBunnyVideo(title: string) {
     };
 }
 
-export async function apiUploadToBunny(file: File, uploadUrl: string, accessKey: string) {
+export async function apiUploadToBunny(file: File, uploadUrl: string, accessKey: string, onProgress?: (progress: number) => void) {
     try {
         const res = await axios.put(uploadUrl, file, {
             headers: {
                 "Content-Type": "application/octet-stream",
                 AccessKey: accessKey,
+            },
+            onUploadProgress: (progressEvent) => {
+                if (onProgress && progressEvent.total) {
+                    const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+                    onProgress(progress);
+                }
             },
         });
         console.log("Upload response:", res.status, res.statusText);

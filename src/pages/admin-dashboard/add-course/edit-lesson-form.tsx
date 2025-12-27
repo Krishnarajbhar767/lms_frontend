@@ -15,6 +15,7 @@ import BunnyPlayer from "../../../components/core/bunny-player";
 import { useMutation } from "@tanstack/react-query";
 import { MdOutlineCancel } from "react-icons/md";
 import { FaRegSave } from "react-icons/fa";
+import UploadProgressCard from "../../../components/core/upload-progress-card";
 
 interface EditLessonFormProps {
     lesson: Lesson;
@@ -43,6 +44,8 @@ export const EditLessonForm: React.FC<EditLessonFormProps> = ({ lesson, onCancel
     const setCourse = useCourseStore((state) => state?.setCourse);
     const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
     const [showVideoPreview, setShowVideoPreview] = useState(false);
+    const [uploadProgress, setUploadProgress] = useState(0);
+    const [isResourceUpload, setIsResourceUpload] = useState(false);
 
     const { mutateAsync: updateLessonMutation, isPending: isUpdating } = useMutation({
         mutationFn: async (data: EditLessonFormValues) => {
@@ -53,14 +56,26 @@ export const EditLessonForm: React.FC<EditLessonFormProps> = ({ lesson, onCancel
 
             // Handle New Video Upload
             if (isVideoChanged) {
+                setUploadProgress(0);
+                setIsResourceUpload(false);
                 const createVideoRes = await apiCreateBunnyVideo(data.title);
                 newVideoId = createVideoRes.videoId;
-                await apiUploadToBunny(data.videoFile!, createVideoRes.uploadUrl, createVideoRes.accessKey);
+                await apiUploadToBunny(
+                    data.videoFile!,
+                    createVideoRes.uploadUrl,
+                    createVideoRes.accessKey,
+                    (progress) => setUploadProgress(progress)
+                );
             }
 
             // Handle New Resource Upload
             if (isResourceChanged) {
-                const uploadRes = await uploadResourceApi(data.resourceFile!);
+                setUploadProgress(0);
+                setIsResourceUpload(true);
+                const uploadRes = await uploadResourceApi(
+                    data.resourceFile!,
+                    (progress) => setUploadProgress(progress)
+                );
                 if (uploadRes) {
                     newResourceUrl = uploadRes.resourceUrl;
                 }
@@ -75,8 +90,10 @@ export const EditLessonForm: React.FC<EditLessonFormProps> = ({ lesson, onCancel
                 if (newResourceUrl) updateData.resource = newResourceUrl;
 
                 const updatedCourse = await updateLessonApi(lesson.id, updateData);
+                setUploadProgress(0); // Reset after completion
                 return { updatedCourse, newVideoId, newResourceUrl };
             } catch (error) {
+                setUploadProgress(0);
                 // Rollback on failure
                 if (newVideoId) {
                     try {
@@ -265,6 +282,11 @@ export const EditLessonForm: React.FC<EditLessonFormProps> = ({ lesson, onCancel
                     {isUpdating ? "Updating..." : "Update Lesson"} <FaRegSave />
                 </Button>
             </div>
+            <UploadProgressCard
+                progress={uploadProgress}
+                isResource={isResourceUpload}
+                fileName={isResourceUpload ? watch("resourceFile")?.name : watch("videoFile")?.name}
+            />
         </form>
     );
 };

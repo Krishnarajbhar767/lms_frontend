@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { MdCheckCircle, MdCancel, MdChevronRight, MdRefresh } from 'react-icons/md';
-import type { Question, Quize } from '../../../service/api/course-builder.api';
+import { MdCheckCircle, MdChevronRight, MdRefresh } from 'react-icons/md';
+import type { Quize } from '../../../service/api/course-builder.api';
 
 interface QuizViewProps {
     quiz: Quize;
@@ -113,16 +113,16 @@ const QuizView: React.FC<QuizViewProps> = ({ quiz, onClose }) => {
                             key={idx}
                             onClick={() => handleOptionSelect(currentQuestionIndex, idx)}
                             className={`w-full p-5 rounded-xl border-2 text-left transition-all flex items-center justify-between group ${selectedOptions[currentQuestionIndex] === idx
-                                    ? 'border-yellow-50 bg-yellow-50/5 shadow-[0_0_20px_rgba(255,214,10,0.1)]'
-                                    : 'border-richblack-700 bg-richblack-900/50 hover:border-richblack-600 hover:bg-richblack-700/50'
+                                ? 'border-yellow-50 bg-yellow-50/5 shadow-[0_0_20px_rgba(255,214,10,0.1)]'
+                                : 'border-richblack-700 bg-richblack-900/50 hover:border-richblack-600 hover:bg-richblack-700/50'
                                 }`}
                         >
                             <span className={`font-semibold sm:text-lg ${selectedOptions[currentQuestionIndex] === idx ? 'text-yellow-50' : 'text-richblack-200'
                                 }`}>{option.title}</span>
 
                             <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all shrink-0 ${selectedOptions[currentQuestionIndex] === idx
-                                    ? 'border-yellow-50 bg-yellow-50'
-                                    : 'border-richblack-500 group-hover:border-richblack-400'
+                                ? 'border-yellow-50 bg-yellow-50'
+                                : 'border-richblack-500 group-hover:border-richblack-400'
                                 }`}>
                                 {selectedOptions[currentQuestionIndex] === idx && <div className="w-2.5 h-2.5 rounded-full bg-richblack-900"></div>}
                             </div>

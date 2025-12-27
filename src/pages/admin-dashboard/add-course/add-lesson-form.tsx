@@ -13,6 +13,8 @@ import { deleteResourceFileApi } from "../../../service/api/course-builder.api";
 import { IoCreateSharp } from "react-icons/io5";
 import { MdOutlineCancel } from "react-icons/md";
 import { useMutation } from "@tanstack/react-query";
+import { useState } from "react";
+import UploadProgressCard from "../../../components/core/upload-progress-card";
 
 type AddLessonFormProps = {
     sectionId: number;
@@ -32,10 +34,15 @@ export const AddLessonForm = ({ sectionId, onCancel, onSuccess }: AddLessonFormP
     const videoFile = watch("videoFile");
     const duration = watch("duration");
     const setCourse = useCourseStore((state) => state?.setCourse);
+    const [uploadProgress, setUploadProgress] = useState(0);
+    const [isResourceUpload, setIsResourceUpload] = useState(false);
+
     const { mutateAsync: createLessonMutation, isPending: isCreating } = useMutation({
         mutationFn: async (data: AddLessonFormValues) => {
             let resourceUrl = '';
             let videoId = '';
+            setUploadProgress(0);
+            setIsResourceUpload(false);
 
             try {
                 // --- Step 1: Create Video Entry in Bunny ---
@@ -43,16 +50,26 @@ export const AddLessonForm = ({ sectionId, onCancel, onSuccess }: AddLessonFormP
                 videoId = createVideoRes.videoId;
 
                 // --- Step 2: Upload Video File ---
-                await apiUploadToBunny(data.videoFile, createVideoRes.uploadUrl, createVideoRes.accessKey);
+                await apiUploadToBunny(
+                    data.videoFile,
+                    createVideoRes.uploadUrl,
+                    createVideoRes.accessKey,
+                    (progress) => setUploadProgress(progress)
+                );
 
-                // --- Step 3: Handle Resource File Upload (Optional) ---
+                // --- Step 3: Handle Resource File Upload---
                 if (data.resourceFile && data.resourceFile.size > 0) {
                     const isValidType = data.resourceFile.type.startsWith("application/pdf") ||
                         data.resourceFile.type.startsWith("application/msword") ||
                         data.resourceFile.type.startsWith("application/vnd.openxmlformats-officedocument.wordprocessingml.document");
 
                     if (isValidType) {
-                        const uploadRes = await uploadResourceApi(data.resourceFile);
+                        setIsResourceUpload(true);
+                        setUploadProgress(0); // Reset for resource upload
+                        const uploadRes = await uploadResourceApi(
+                            data.resourceFile,
+                            (progress) => setUploadProgress(progress)
+                        );
                         if (uploadRes) {
                             resourceUrl = uploadRes?.resourceUrl;
                         }
@@ -68,9 +85,11 @@ export const AddLessonForm = ({ sectionId, onCancel, onSuccess }: AddLessonFormP
                     resource: resourceUrl
                 });
 
+                setUploadProgress(0); // Reset after completion
                 return { course, videoId, resourceUrl };
 
             } catch (error) {
+                setUploadProgress(0);
                 // Cleanup on failure
                 if (videoId) {
                     try {
@@ -183,6 +202,12 @@ export const AddLessonForm = ({ sectionId, onCancel, onSuccess }: AddLessonFormP
                     {isCreating ? "Creating..." : "Create Lesson"} <IoCreateSharp />
                 </Button>
             </div>
+
+            <UploadProgressCard
+                progress={uploadProgress}
+                isResource={isResourceUpload}
+                fileName={isResourceUpload ? watch("resourceFile")?.name : watch("videoFile")?.name}
+            />
         </form>
     );
 };

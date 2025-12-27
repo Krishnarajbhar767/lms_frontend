@@ -118,14 +118,20 @@ export const createLessonApi = async (lessonData: Omit<Lesson, "id" | "order" | 
     return res?.data?.data
 }
 
-export const uploadResourceApi = async (file: File) => {
+export const uploadResourceApi = async (file: File, onProgress?: (progress: number) => void) => {
     const formData = new FormData();
     formData.append("resource", file);
 
     const res = await axiosInstance.post<ApiResponse<{ resourceUrl: string }>>(CourseEndpoints.uploadResource, formData, {
         headers: {
             "Content-Type": "multipart/form-data",
-        }
+        },
+        onUploadProgress: (progressEvent) => {
+            if (onProgress && progressEvent.total) {
+                const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+                onProgress(progress);
+            }
+        },
     });
 
     return res?.data?.data
